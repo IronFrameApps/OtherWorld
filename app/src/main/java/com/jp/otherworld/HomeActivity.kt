@@ -102,7 +102,18 @@ class HomeActivity : ComponentActivity() {
             val appList = remember(allApps, vault.hiddenApps) { allApps.filter { it.packageName !in vault.hiddenApps } }
             val apps = remember(appList) { appList.associateBy { it.packageName } }
             var vaultOpen by remember { mutableStateOf(false) }
-            val art by produceState<WheelArt?>(null) { value = withContext(Dispatchers.IO) { loadWheelArt(context) } }
+            // The private drawer never shows in the recents thumbnail, screenshots or screen recordings.
+            LaunchedEffect(vaultOpen) {
+                if (vaultOpen) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            }
+            // The glass wheel takes the colour of the alien wallpaper in use (re-checked on each Home press).
+            val wallpaperService = remember(homePresses) {
+                runCatching { android.app.WallpaperManager.getInstance(context).wallpaperInfo?.serviceName }.getOrNull()
+            }
+            val art by produceState<WheelArt?>(null, wallpaperService) {
+                value = withContext(Dispatchers.IO) { loadWheelArt(context, com.jp.otherworld.ui.wheel.wheelTintFor(wallpaperService)) }
+            }
 
             val pager = rememberPagerState(initialPage = state.defaultPage) { state.pages.size }
 
@@ -279,6 +290,7 @@ class HomeActivity : ComponentActivity() {
                             jumpTo = wheelJump,
                             ringKey = if (searching) "search" else ringName,
                             center = state.wheelCenter,
+                            tint = com.jp.otherworld.ui.wheel.wheelTintFor(wallpaperService),
                             onLongPress = { p -> (p as? Panel.App)?.let { appMenu = AppMenuTarget(it.app, AppSource.Drawer) } }
                         ) { panel ->
                             when (panel) {
@@ -399,12 +411,30 @@ class HomeActivity : ComponentActivity() {
                 // First run: the setup guide (home screen, wallpaper, notifications, talk along, lock, secret drawer).
                 if (!state.setupDone) com.jp.otherworld.ui.home.SetupGuide { }
                 // Not the default home any more: one tap to make it the home screen again.
+                // Three states: not selected (button), Android's chooser open (button says so and ignores taps), selected (button gone + a toast).
+                var choosingHome by remember { mutableStateOf(false) }
                 val askHome = androidx.activity.compose.rememberLauncherForActivityResult(
                     androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-                ) { isDefaultHome = getSystemService(android.app.role.RoleManager::class.java)?.isRoleHeld(android.app.role.RoleManager.ROLE_HOME) != false }
-                if (state.setupDone && !isDefaultHome && !vaultOpen && !drawerOpen) Box(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
-                    com.jp.otherworld.ui.common.GlassButton("Make Other World your home screen", selected = true) {
-                        getSystemService(android.app.role.RoleManager::class.java)?.let { askHome.launch(it.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)) }
+                ) {
+                    choosingHome = false
+                    isDefaultHome = getSystemService(android.app.role.RoleManager::class.java)?.isRoleHeld(android.app.role.RoleManager.ROLE_HOME) != false
+                    if (isDefaultHome) android.widget.Toast.makeText(context, "Other World is now your home screen", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                // The dock defaults to the bottom (dockLift < 0 = unmoved); keep the prompt on the far edge from it.
+                val maxDockLift = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp - 170).coerceAtLeast(0)
+                val dockAtTop = state.dockLift > maxDockLift / 2f
+                if (state.setupDone && !isDefaultHome && !vaultOpen && !drawerOpen) Box(
+                    if (dockAtTop) Modifier.fillMaxSize().navigationBarsPadding().padding(bottom = 16.dp)
+                    else Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp),
+                    contentAlignment = if (dockAtTop) Alignment.BottomCenter else Alignment.TopCenter
+                ) {
+                    com.jp.otherworld.ui.common.GlassButton(
+                        if (choosingHome) "Waiting for Android…" else "Make Other World your home screen", selected = true
+                    ) {
+                        if (!choosingHome) getSystemService(android.app.role.RoleManager::class.java)?.let {
+                            choosingHome = true
+                            askHome.launch(it.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME))
+                        }
                     }
                 }
 

@@ -29,7 +29,6 @@ import com.jp.otherworld.wallpaper.AlienGreenWallpaperService
 import com.jp.otherworld.wallpaper.AlienPinkWallpaperService
 import com.jp.otherworld.wallpaper.AlienPurpleWallpaperService
 import com.jp.otherworld.wallpaper.AlienWallpaperService
-import com.jp.otherworld.wallpaper.GlobeWallpaperService
 import androidx.compose.foundation.background
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -52,7 +51,6 @@ fun WallpaperPicker(onDone: () -> Unit) {
     }
     fun thumb(name: String) = context.assets.open(name).use { android.graphics.BitmapFactory.decodeStream(it) }.asImageBitmap()
     val art = remember { thumb("glass_wheel.png") }
-    val globe = remember { thumb("globe_thumb.jpg") }
     val alien = remember { thumb("alien.png") }
     val alienGreen = remember { thumb("alien_green.png") }
     val alienPink = remember { thumb("alien_pink.png") }
@@ -83,7 +81,6 @@ fun WallpaperPicker(onDone: () -> Unit) {
             // All the animated ones in one row you can slide sideways.
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val w = Modifier.width(96.dp)
-                LiveThumb(globe, "Globe", w) { setLiveWallpaper(context, GlobeWallpaperService::class.java); onDone() }
                 LiveThumb(alien, "Alien", w) { setLiveWallpaper(context, AlienWallpaperService::class.java); onDone() }
                 LiveThumb(alienGreen, "Green", w) { setLiveWallpaper(context, AlienGreenWallpaperService::class.java); onDone() }
                 LiveThumb(alienPink, "Pink", w) { setLiveWallpaper(context, AlienPinkWallpaperService::class.java); onDone() }

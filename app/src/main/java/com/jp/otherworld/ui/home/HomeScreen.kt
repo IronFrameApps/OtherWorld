@@ -28,6 +28,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -193,7 +199,7 @@ fun HomeScreen(
             save = { v -> LauncherStore.update { it.copy(dotsLift = v) } }) {
             PageDots(state.pages.size, pager.currentPage)
         }
-        MovableBar(state.dockLift, 1f, editingWidget == EDIT_DOCK, onHold = null, onDone = { onEditWidget(null) },
+        MovableBar(state.dockLift, 0f, editingWidget == EDIT_DOCK, onHold = null, onDone = { onEditWidget(null) },
             save = { v -> LauncherStore.update { it.copy(dockLift = v) } }) {
             Dock(state, apps, iconDp, onOpenDrawer, onAppMenu, onEmptyDockSlot)
         }
@@ -436,22 +442,35 @@ private fun Dock(
         state.dock.forEachIndexed { i, pkg ->
             val app = pkg?.let { apps[it] }
             if (app != null) {
-                AppIcon(
-                    app, state.iconStyle, iconDp,
-                    Modifier.pointerInput(app.packageName, i) {
-                        detectTapGestures(
-                            onTap = { launchApp(context, app.packageName) },
-                            onLongPress = { onAppMenu(AppMenuTarget(app, AppSource.Dock(i))) }
-                        )
-                    }
-                )
+                // Touch target at least 48dp; TalkBack gets the label plus open / menu actions (the gestures alone are invisible to it).
+                Box(
+                    Modifier
+                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                        .semantics(mergeDescendants = true) {
+                            role = Role.Button
+                            contentDescription = app.label
+                            onClick(label = "Open") { launchApp(context, app.packageName); true }
+                            onLongClick(label = "More options") { onAppMenu(AppMenuTarget(app, AppSource.Dock(i))); true }
+                        }
+                        .pointerInput(app.packageName, i) {
+                            detectTapGestures(
+                                onTap = { launchApp(context, app.packageName) },
+                                onLongPress = { onAppMenu(AppMenuTarget(app, AppSource.Dock(i))) }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) { AppIcon(app, state.iconStyle, iconDp) }
             } else {
-                Image(
-                    GlassIcons.tile.asImageBitmap(), "Empty dock slot",
-                    Modifier.size(iconDp).alpha(0.35f).clickable { onEmptySlot(i) }
-                )
+                Box(Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp), contentAlignment = Alignment.Center) {
+                    Image(
+                        GlassIcons.tile.asImageBitmap(), "Empty dock slot ${i + 1}. Choose an app",
+                        Modifier.size(iconDp).alpha(0.6f).clickable(role = Role.Button) { onEmptySlot(i) }
+                    )
+                }
             }
         }
-        Image(GlassIcons.appsButton.asImageBitmap(), "All apps", Modifier.size(iconDp).clickable { onOpenDrawer() })
+        Box(Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp), contentAlignment = Alignment.Center) {
+            Image(GlassIcons.appsButton.asImageBitmap(), "All apps", Modifier.size(iconDp).clickable(role = Role.Button) { onOpenDrawer() })
+        }
     }
 }

@@ -88,6 +88,7 @@ fun GlassWheel(
     jumpTo: Pair<Int, Long>? = null,      // (panel index, request id) — e.g. from the A–Z bar
     ringKey: Any? = null,                 // changes when the user switches rings: the wheel spins the new set in
     center: String = "MORPH",             // middle of the ring: MORPH (Earth → smoke → Mars), EARTH, MARS or NONE
+    tint: WheelTint? = null,              // the wallpaper's colour; the globe takes it too (the glass art is tinted when loaded)
     onLongPress: (Panel?) -> Unit, onOpen: (Panel) -> Unit
 ) {
     val view = LocalView.current
@@ -124,6 +125,7 @@ fun GlassWheel(
     }
 
     val paints = remember { Paints() }
+    paints.globe.colorFilter = remember(tint) { tint?.filter() }
 
     // The spinning globe in the middle of the ring: frames cut from the user's globe video,
     // decoded off the main thread at the video's 30 fps while the wheel is showing.

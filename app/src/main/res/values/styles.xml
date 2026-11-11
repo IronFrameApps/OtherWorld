@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Other World</string>
-    <string name="wp_globe">Spinning globe</string>
     <string name="wp_alien">Alien (cyan)</string>
     <string name="wp_alien_green">Alien (neon green)</string>
     <string name="wp_alien_pink">Alien (neon pink)</string>

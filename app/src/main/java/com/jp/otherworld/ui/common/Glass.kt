@@ -33,7 +33,7 @@ fun Modifier.glass(shape: Shape = RoundedCornerShape(22.dp), strong: Boolean = f
     .background(
         Brush.verticalGradient(
             if (strong) listOf(Color(0xE6143A66), Color(0xF00A1D38))
-            else listOf(Color(0x8C143A66), Color(0xB30A1D38))
+            else listOf(Color(0xA6143A66), Color(0xC80A1D38))   // dense enough to keep text readable over bright wallpapers
         )
     )
     .border(
@@ -53,7 +53,7 @@ fun GlassButton(text: String, modifier: Modifier = Modifier, selected: Boolean =
         modifier
             .glass(RoundedCornerShape(18.dp), strong = selected)
             .then(if (selected) Modifier.border(2.dp, GlassCyan, RoundedCornerShape(18.dp)) else Modifier)
-            .clickable(onClick = onClick)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) { GlassLabel(text, 15.sp, if (selected) GlassText else GlassDim, if (selected) FontWeight.Medium else FontWeight.Normal) }
